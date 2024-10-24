@@ -957,6 +957,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "scikit-learn" },
+    { name = "segyio" },
     { name = "streamlit" },
     { name = "tensorflow" },
 ]
@@ -967,6 +968,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.1.2" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "scikit-learn", specifier = ">=1.5.2" },
+    { name = "segyio", specifier = ">=1.9.12" },
     { name = "streamlit", specifier = ">=1.39.0" },
     { name = "tensorflow", specifier = ">=2.14.0" },
 ]
@@ -1133,6 +1135,30 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/56/46/2449e6e51e0d7c3575f289f6acb7f828938eaab8874dbccfeb0cd2b71a27/scipy-1.14.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5149e3fd2d686e42144a093b206aef01932a0059c2a33ddfa67f5f035bdfe13e", size = 40798288 },
     { url = "https://files.pythonhosted.org/packages/32/cd/9d86f7ed7f4497c9fd3e39f8918dd93d9f647ba80d7e34e4946c0c2d1a7c/scipy-1.14.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:e4f5a7c49323533f9103d4dacf4e4f07078f360743dec7f7596949149efeec06", size = 42524647 },
     { url = "https://files.pythonhosted.org/packages/f5/1b/6ee032251bf4cdb0cc50059374e86a9f076308c1512b61c4e003e241efb7/scipy-1.14.1-cp313-cp313-win_amd64.whl", hash = "sha256:baff393942b550823bfce952bb62270ee17504d02a1801d7fd0719534dfb9c84", size = 44469524 },
+]
+
+[[package]]
+name = "segyio"
+version = "1.9.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/e7/d366ac7751fc58fd943cbb8ab7d80a1616879f4654642f82d45147afeb9b/segyio-1.9.12-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:5ab879943ff8ece64af63e88f89037a6d5963da6f604a57c955bf33afda088ff", size = 83266 },
+    { url = "https://files.pythonhosted.org/packages/b9/cb/035716b50d1f043568e0ee7ec98e8a2adc0988462f3e68c03432fe2032e7/segyio-1.9.12-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:b52412f3512d6f09da2878c3c77fd4487f9679864b57c02896611af9a16c02a4", size = 81955 },
+    { url = "https://files.pythonhosted.org/packages/be/65/04a77c42000d2344d882cdae22f5bd4383d849a1c407c0918a06a7fc7ce7/segyio-1.9.12-cp311-cp311-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a1296145f8ff8ae14f35d3cdc225baaf53a6f891f7cb2021c1711c0cad0eea20", size = 86227 },
+    { url = "https://files.pythonhosted.org/packages/b0/c8/d5815e388ec9d32cf770bb01d47055715ff03bdf50da5be317ec9f817d95/segyio-1.9.12-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a814ff1a01939d92279859870b02cc9c24435b265568b2aef068b6a1fcc6f9fd", size = 83823 },
+    { url = "https://files.pythonhosted.org/packages/2a/65/4baa76bb571f775bda28af015188b95dc5337f700668d3a72fc32438be01/segyio-1.9.12-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9495a7f47bd5f8a8ae134d3840191f49c366c8b8e48f2483fa350699047fcd14", size = 85124 },
+    { url = "https://files.pythonhosted.org/packages/ff/8d/c8f7e6588482d7b9cd31f2ea0171ab1b8ad7db9f03fc3c5f4439ce05a7f4/segyio-1.9.12-cp311-cp311-win32.whl", hash = "sha256:22430b55f17b727ed59926e36354d446abeb1c75490d510b44243e490f3b5381", size = 79700 },
+    { url = "https://files.pythonhosted.org/packages/01/a2/9b88d1a8a626f7a0ad622346a82bf0510a52a572c406fbb4f55016bbf7ea/segyio-1.9.12-cp311-cp311-win_amd64.whl", hash = "sha256:cc5ce29a4d27e0a87c439be90664ebcf78fb0e366ea86a540a24720263bd35b5", size = 84841 },
+    { url = "https://files.pythonhosted.org/packages/3e/b7/eb0a498ce9b459f9e002caa8d5ec9db25e36fe60a69f737abc9dc7e9eeac/segyio-1.9.12-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:a6017117d3ad280fc489b2f00a5981c729e43f362650cf835054289aba610a59", size = 83279 },
+    { url = "https://files.pythonhosted.org/packages/80/a3/c4d4b790eb75c8fe9d8d179a0c4cdd8fe5dc33d1b06e9750740a3f1f47f3/segyio-1.9.12-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4a7c6f6e55d01005dd2828035c6e02a0259dca76eadd35c35ba3206f6be00fc5", size = 82027 },
+    { url = "https://files.pythonhosted.org/packages/57/0f/86ea975c0422ecc6db04639227eb4abfb22137c94f6bfee10a2d8ebb0511/segyio-1.9.12-cp312-cp312-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:17577df1865a7e1a03fe05836089e3493cf9f62a731bfab33ad437ef91b711db", size = 86287 },
+    { url = "https://files.pythonhosted.org/packages/9f/76/17d21faa838ba62938ec0252287916360679a3876844e820a6a57491cd66/segyio-1.9.12-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:85eb614cb6d5b293ad2c1537a082db8cd44b825a915c92868d6df3d29a5b911a", size = 83864 },
+    { url = "https://files.pythonhosted.org/packages/22/bd/c95946c7246961b2e2f28fadcc478a0320fb28037dfb3057b4797062db8d/segyio-1.9.12-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b2fc17fa50ff2828ef3d8764e2f2fe51bed1363a70399cd2bdcac37dffa1877f", size = 85123 },
+    { url = "https://files.pythonhosted.org/packages/bf/44/64067dfb4588dbb396abe29429c37c4d38ecc42dfada5d28028a2c91c018/segyio-1.9.12-cp312-cp312-win32.whl", hash = "sha256:9fd86353710bd0bcdddeb5084f7bb6b05799e4222327caf3ef3f5bf966ee1456", size = 79739 },
+    { url = "https://files.pythonhosted.org/packages/a6/c4/38dcad36fc0919efc04c77c50f50a308e63e0f3117cfe4c6fd4c489b5436/segyio-1.9.12-cp312-cp312-win_amd64.whl", hash = "sha256:050f70d180573530979b575863cb07a29de20f48a442aa126d817558d3dafb07", size = 84873 },
 ]
 
 [[package]]

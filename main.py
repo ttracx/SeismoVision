@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from model import SeismicClassifier
 from preprocessing import preprocess_data
 from utils import plot_seismic_data, plot_training_history
+from data_loader import load_seismic_data
 import io
 import pandas as pd
 
@@ -42,10 +43,13 @@ def upload_and_visualize():
     col1, col2 = st.columns(2)
     
     with col1:
-        data_file = st.file_uploader("Upload Seismic Data (.npy)", type=['npy'])
+        data_file = st.file_uploader(
+            "Upload Seismic Data (Supported formats: .sgy, .segy, .csv, .npy)", 
+            type=['sgy', 'segy', 'csv', 'npy']
+        )
         if data_file is not None:
             try:
-                seismic_data = np.load(data_file)
+                seismic_data = load_seismic_data(data_file)
                 st.session_state['seismic_data'] = seismic_data
                 
                 st.success("Data loaded successfully!")
@@ -58,10 +62,16 @@ def upload_and_visualize():
                 st.error(f"Error loading data: {str(e)}")
     
     with col2:
-        labels_file = st.file_uploader("Upload Labels (optional, .npy)", type=['npy'])
+        labels_file = st.file_uploader(
+            "Upload Labels (Supported formats: .csv, .npy)", 
+            type=['csv', 'npy']
+        )
         if labels_file is not None:
             try:
-                labels = np.load(labels_file)
+                if labels_file.name.endswith('.csv'):
+                    labels = pd.read_csv(labels_file).values.ravel()
+                else:
+                    labels = np.load(labels_file)
                 st.session_state['labels'] = labels
                 st.success("Labels loaded successfully!")
                 st.write("Labels shape:", labels.shape)
@@ -109,11 +119,14 @@ def make_predictions():
         st.warning("Please train the model first!")
         return
         
-    pred_data = st.file_uploader("Upload data for prediction (.npy)", type=['npy'])
+    pred_data = st.file_uploader(
+        "Upload data for prediction (Supported formats: .sgy, .segy, .csv, .npy)", 
+        type=['sgy', 'segy', 'csv', 'npy']
+    )
     
     if pred_data is not None:
         try:
-            X_pred = np.load(pred_data)
+            X_pred = load_seismic_data(pred_data)
             X_pred_processed = preprocess_data(X_pred)
             
             predictions = st.session_state.model.predict(X_pred_processed)
