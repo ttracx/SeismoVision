@@ -1,217 +1,88 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
-from model import SeismicClassifier
-from preprocessing import preprocess_data
-from utils import plot_seismic_data, plot_training_history
-from data_loader import load_seismic_data
-import io
 import pandas as pd
+import segyio
+import io
+import os
 
 st.set_page_config(
     page_title="Seismic Data Interpreter",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_icon="🌍",
+    layout="wide"
 )
 
+st.title("Seismic Data Interpretation Application")
+st.subheader("Data Loading Module")
+
+def load_segy_file(uploaded_file):
+    """Load and validate SEG-Y file"""
+    try:
+        # Save the uploaded file temporarily
+        with open('temp.sgy', 'wb') as f:
+            f.write(uploaded_file.getbuffer())
+        
+        # Open the SEG-Y file
+        with segyio.open('temp.sgy', 'r', strict=False) as segy:
+            # Get basic information
+            n_traces = segy.tracecount
+            sample_rate = segy.samples[1] - segy.samples[0]
+            n_samples = len(segy.samples)
+            
+            # Read the first trace to get data type and range
+            first_trace = segy.trace[0]
+            
+            info = {
+                "Number of Traces": n_traces,
+                "Sample Rate (ms)": sample_rate,
+                "Samples per Trace": n_samples,
+                "Data Range": f"{first_trace.min():.2f} to {first_trace.max():.2f}",
+                "Data Type": first_trace.dtype
+            }
+            
+            return info, True
+            
+    except Exception as e:
+        st.error(f"Error loading SEG-Y file: {str(e)}")
+        return None, False
+    finally:
+        # Clean up temporary file
+        if os.path.exists('temp.sgy'):
+            os.remove('temp.sgy')
+
 def main():
-    st.title("Seismic Data Interpretation System")
-    st.sidebar.title("Controls")
-
-    # Initialize session state
-    if 'model' not in st.session_state:
-        st.session_state.model = SeismicClassifier()
-    if 'training_history' not in st.session_state:
-        st.session_state.training_history = None
-
-    # Sidebar options
-    action = st.sidebar.selectbox(
-        "Choose Action",
-        ["Upload & Visualize", "Train Model", "Make Predictions"]
-    )
-
-    if action == "Upload & Visualize":
-        upload_and_visualize()
-    elif action == "Train Model":
-        train_model()
+    # File upload section
+    st.markdown("### Upload Seismic Data")
+    uploaded_file = st.file_uploader("Choose a SEG-Y file", type=['sgy', 'segy'])
+    
+    if uploaded_file is not None:
+        with st.spinner('Loading seismic data...'):
+            info, success = load_segy_file(uploaded_file)
+            
+            if success:
+                st.success("File loaded successfully!")
+                
+                # Display file information
+                st.markdown("### Seismic Data Information")
+                for key, value in info.items():
+                    st.text(f"{key}: {value}")
+                
+                # Store the file information in session state
+                st.session_state['seismic_info'] = info
+                st.session_state['filename'] = uploaded_file.name
+            else:
+                st.error("Failed to load the file. Please check if it's a valid SEG-Y file.")
+    
+    # Display instructions if no file is uploaded
     else:
-        make_predictions()
-
-def get_preprocessing_options():
-    """Get preprocessing options from user input"""
-    st.subheader("Preprocessing Options")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        normalize_method = st.selectbox(
-            "Normalization Method",
-            ["standard", "minmax", "robust", "none"]
-        )
+        st.info("Please upload a SEG-Y format seismic data file to begin.")
+        st.markdown("""
+        ### Supported Data Format:
+        - SEG-Y files (.sgy, .segy)
         
-        denoise = st.checkbox("Apply Denoising", value=False)
-        if denoise:
-            sigma = st.slider("Denoising Strength", 0.1, 5.0, 1.0)
-        
-    with col2:
-        bandpass = st.checkbox("Apply Bandpass Filter", value=False)
-        if bandpass:
-            lowcut = st.slider("Low Cutoff Frequency (Hz)", 1, 50, 5)
-            highcut = st.slider("High Cutoff Frequency (Hz)", 51, 200, 125)
-        
-        dimension_reduction = st.checkbox("Apply Dimension Reduction (PCA)", value=False)
-        if dimension_reduction:
-            n_components = st.slider("Explained Variance Ratio", 0.8, 0.99, 0.95)
-    
-    augment = st.checkbox("Apply Data Augmentation", value=False)
-    
-    options = {
-        'normalize': normalize_method if normalize_method != 'none' else None,
-        'denoise': {'sigma': sigma} if denoise else False,
-        'bandpass': {'lowcut': lowcut, 'highcut': highcut} if bandpass else False,
-        'dimension_reduction': {'n_components': n_components} if dimension_reduction else False,
-        'augment': augment
-    }
-    
-    return options
-
-def upload_and_visualize():
-    st.header("Data Upload & Visualization")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        data_file = st.file_uploader(
-            "Upload Seismic Data (Supported formats: .sgy, .segy, .csv, .npy)", 
-            type=['sgy', 'segy', 'csv', 'npy']
-        )
-        if data_file is not None:
-            try:
-                seismic_data = load_seismic_data(data_file)
-                st.session_state['seismic_data'] = seismic_data
-                
-                st.success("Data loaded successfully!")
-                st.write("Data shape:", seismic_data.shape)
-                
-                # Preview preprocessing
-                if st.checkbox("Preview Preprocessing"):
-                    options = get_preprocessing_options()
-                    processed_data = preprocess_data(seismic_data, options)
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.subheader("Original Data")
-                        fig1 = plot_seismic_data(seismic_data)
-                        st.pyplot(fig1)
-                    
-                    with col2:
-                        st.subheader("Processed Data")
-                        fig2 = plot_seismic_data(processed_data)
-                        st.pyplot(fig2)
-                else:
-                    fig = plot_seismic_data(seismic_data)
-                    st.pyplot(fig)
-                
-            except Exception as e:
-                st.error(f"Error loading data: {str(e)}")
-    
-    with col2:
-        labels_file = st.file_uploader(
-            "Upload Labels (Supported formats: .csv, .npy)", 
-            type=['csv', 'npy']
-        )
-        if labels_file is not None:
-            try:
-                if labels_file.name.endswith('.csv'):
-                    labels = pd.read_csv(labels_file).values.ravel()
-                else:
-                    labels = np.load(labels_file)
-                st.session_state['labels'] = labels
-                st.success("Labels loaded successfully!")
-                st.write("Labels shape:", labels.shape)
-            except Exception as e:
-                st.error(f"Error loading labels: {str(e)}")
-
-def train_model():
-    st.header("Model Training")
-    
-    if 'seismic_data' not in st.session_state or 'labels' not in st.session_state:
-        st.warning("Please upload both seismic data and labels first!")
-        return
-    
-    # Get preprocessing options
-    preprocessing_options = get_preprocessing_options()
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        n_estimators = st.slider("Number of trees", 50, 500, 100)
-        
-    if st.button("Start Training"):
-        with st.spinner("Training in progress..."):
-            X = st.session_state['seismic_data']
-            y = st.session_state['labels']
-            
-            # Preprocess data with selected options
-            X_processed = preprocess_data(X, preprocessing_options)
-            
-            # Train model
-            history = st.session_state.model.train(
-                X_processed, y,
-                n_estimators=n_estimators
-            )
-            
-            st.session_state.training_history = history
-            
-            # Plot training history
-            fig = plot_training_history(history)
-            st.pyplot(fig)
-            
-            st.success("Training completed!")
-
-def make_predictions():
-    st.header("Make Predictions")
-    
-    if not hasattr(st.session_state.model, 'model'):
-        st.warning("Please train the model first!")
-        return
-    
-    # Get preprocessing options
-    preprocessing_options = get_preprocessing_options()
-        
-    pred_data = st.file_uploader(
-        "Upload data for prediction (Supported formats: .sgy, .segy, .csv, .npy)", 
-        type=['sgy', 'segy', 'csv', 'npy']
-    )
-    
-    if pred_data is not None:
-        try:
-            X_pred = load_seismic_data(pred_data)
-            X_pred_processed = preprocess_data(X_pred, preprocessing_options)
-            
-            predictions = st.session_state.model.predict(X_pred_processed)
-            confidence_scores = np.max(predictions, axis=1)
-            
-            # Create results DataFrame
-            results_df = pd.DataFrame({
-                'Prediction': np.argmax(predictions, axis=1),
-                'Confidence': confidence_scores
-            })
-            
-            st.write("Prediction Results:")
-            st.dataframe(results_df)
-            
-            # Download results
-            csv = results_df.to_csv(index=False)
-            st.download_button(
-                label="Download Predictions",
-                data=csv,
-                file_name="predictions.csv",
-                mime="text/csv"
-            )
-            
-        except Exception as e:
-            st.error(f"Error making predictions: {str(e)}")
+        ### Expected Data:
+        - 2D or 3D seismic data
+        - Standard SEG-Y format
+        """)
 
 if __name__ == "__main__":
     main()
