@@ -1,5 +1,7 @@
 {pkgs}: {
   deps = [
+    pkgs.openssh
+    pkgs.hdf5
     pkgs.zlib
     pkgs.openjpeg
     pkgs.libwebp

@@ -4,17 +4,17 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "h5py>=3.12.1",
     "joblib>=1.4.2",
     "keras>=2.14.0",
     "matplotlib>=3.9.2",
-    "numpy>=1.24.3",
-    "pandas>=2.2.3",
+    "numpy",
     "plotly>=5.24.1",
     "scikit-learn>=1.5.2",
     "scipy>=1.14.1",
     "segyio==1.9.12",
     "streamlit>=1.39.0",
-    "tensorflow>=2.14.0",
+    "tensorflow",
     "torch>=2.5.0",
     "torchvision>=0.20.0",
 ]
