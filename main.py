@@ -37,6 +37,44 @@ def main():
     else:
         make_predictions()
 
+def get_preprocessing_options():
+    """Get preprocessing options from user input"""
+    st.subheader("Preprocessing Options")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        normalize_method = st.selectbox(
+            "Normalization Method",
+            ["standard", "minmax", "robust", "none"]
+        )
+        
+        denoise = st.checkbox("Apply Denoising", value=False)
+        if denoise:
+            sigma = st.slider("Denoising Strength", 0.1, 5.0, 1.0)
+        
+    with col2:
+        bandpass = st.checkbox("Apply Bandpass Filter", value=False)
+        if bandpass:
+            lowcut = st.slider("Low Cutoff Frequency (Hz)", 1, 50, 5)
+            highcut = st.slider("High Cutoff Frequency (Hz)", 51, 200, 125)
+        
+        dimension_reduction = st.checkbox("Apply Dimension Reduction (PCA)", value=False)
+        if dimension_reduction:
+            n_components = st.slider("Explained Variance Ratio", 0.8, 0.99, 0.95)
+    
+    augment = st.checkbox("Apply Data Augmentation", value=False)
+    
+    options = {
+        'normalize': normalize_method if normalize_method != 'none' else None,
+        'denoise': {'sigma': sigma} if denoise else False,
+        'bandpass': {'lowcut': lowcut, 'highcut': highcut} if bandpass else False,
+        'dimension_reduction': {'n_components': n_components} if dimension_reduction else False,
+        'augment': augment
+    }
+    
+    return options
+
 def upload_and_visualize():
     st.header("Data Upload & Visualization")
     
@@ -55,8 +93,24 @@ def upload_and_visualize():
                 st.success("Data loaded successfully!")
                 st.write("Data shape:", seismic_data.shape)
                 
-                fig = plot_seismic_data(seismic_data)
-                st.pyplot(fig)
+                # Preview preprocessing
+                if st.checkbox("Preview Preprocessing"):
+                    options = get_preprocessing_options()
+                    processed_data = preprocess_data(seismic_data, options)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.subheader("Original Data")
+                        fig1 = plot_seismic_data(seismic_data)
+                        st.pyplot(fig1)
+                    
+                    with col2:
+                        st.subheader("Processed Data")
+                        fig2 = plot_seismic_data(processed_data)
+                        st.pyplot(fig2)
+                else:
+                    fig = plot_seismic_data(seismic_data)
+                    st.pyplot(fig)
                 
             except Exception as e:
                 st.error(f"Error loading data: {str(e)}")
@@ -85,6 +139,9 @@ def train_model():
         st.warning("Please upload both seismic data and labels first!")
         return
     
+    # Get preprocessing options
+    preprocessing_options = get_preprocessing_options()
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -95,8 +152,8 @@ def train_model():
             X = st.session_state['seismic_data']
             y = st.session_state['labels']
             
-            # Preprocess data
-            X_processed = preprocess_data(X)
+            # Preprocess data with selected options
+            X_processed = preprocess_data(X, preprocessing_options)
             
             # Train model
             history = st.session_state.model.train(
@@ -118,6 +175,9 @@ def make_predictions():
     if not hasattr(st.session_state.model, 'model'):
         st.warning("Please train the model first!")
         return
+    
+    # Get preprocessing options
+    preprocessing_options = get_preprocessing_options()
         
     pred_data = st.file_uploader(
         "Upload data for prediction (Supported formats: .sgy, .segy, .csv, .npy)", 
@@ -127,7 +187,7 @@ def make_predictions():
     if pred_data is not None:
         try:
             X_pred = load_seismic_data(pred_data)
-            X_pred_processed = preprocess_data(X_pred)
+            X_pred_processed = preprocess_data(X_pred, preprocessing_options)
             
             predictions = st.session_state.model.predict(X_pred_processed)
             confidence_scores = np.max(predictions, axis=1)

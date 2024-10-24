@@ -957,6 +957,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "segyio" },
     { name = "streamlit" },
     { name = "tensorflow" },
@@ -968,7 +969,8 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.1.2" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "scikit-learn", specifier = ">=1.5.2" },
-    { name = "segyio", specifier = ">=1.9.12" },
+    { name = "scipy", specifier = ">=1.14.1" },
+    { name = "segyio", specifier = "==1.9.12" },
     { name = "streamlit", specifier = ">=1.39.0" },
     { name = "tensorflow", specifier = ">=2.14.0" },
 ]
