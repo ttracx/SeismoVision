@@ -5,6 +5,8 @@ import segyio
 import plotly.graph_objects as go
 import io
 import os
+from model import create_classifier, prepare_data_for_prediction, predict_reservoirs, create_prediction_map
+import joblib
 
 st.set_page_config(
     page_title="Seismic Data Interpreter",
@@ -13,6 +15,16 @@ st.set_page_config(
 )
 
 st.title("Seismic Data Interpretation Application")
+
+@st.cache_resource
+def load_classifier():
+    """Load or create the Random Forest classifier"""
+    if os.path.exists('model.joblib'):
+        model = joblib.load('model.joblib')
+    else:
+        model = create_classifier()
+        # Note: In production, you would train the model here or load pre-trained weights
+    return model
 
 def load_segy_data(uploaded_file):
     """Load SEG-Y data and return the data array"""
@@ -65,7 +77,42 @@ def plot_seismic_section(data, samples, colormap='RdBu', contrast=1.0):
     
     return fig
 
+def plot_prediction_overlay(data, prediction_map, samples, colormap='RdBu', contrast=1.0):
+    """Create a plot with prediction overlay"""
+    # Create figure with secondary axis
+    fig = go.Figure()
+    
+    # Add seismic data
+    fig.add_trace(go.Heatmap(
+        z=data * contrast,
+        y=samples,
+        colorscale=colormap,
+        zmid=0,
+        name="Seismic Data"
+    ))
+    
+    # Add prediction overlay
+    fig.add_trace(go.Heatmap(
+        z=prediction_map,
+        y=samples,
+        colorscale="Viridis",
+        opacity=0.3,
+        name="Reservoir Prediction"
+    ))
+    
+    fig.update_layout(
+        title="Seismic Section with Reservoir Predictions",
+        yaxis_title="Time/Depth",
+        xaxis_title="Trace Number",
+        height=700,
+    )
+    
+    return fig
+
 def main():
+    # Load classifier
+    model = load_classifier()
+    
     # Sidebar controls
     st.sidebar.header("Visualization Controls")
     
@@ -117,6 +164,37 @@ def main():
                 fig = plot_seismic_section(data, samples, colormap, contrast)
                 st.plotly_chart(fig, use_container_width=True)
                 
+                # Reservoir Prediction Section
+                st.markdown("### Reservoir Prediction")
+                if st.button("Run Reservoir Prediction"):
+                    with st.spinner("Running reservoir prediction..."):
+                        # Prepare data for prediction
+                        windows, positions = prepare_data_for_prediction(data)
+                        
+                        # Make predictions
+                        predictions = predict_reservoirs(model, windows)
+                        
+                        # Create prediction map
+                        prediction_map = create_prediction_map(predictions, positions, data.shape)
+                        
+                        # Store predictions in session state
+                        st.session_state['prediction_map'] = prediction_map
+                        
+                        # Plot results with overlay
+                        st.markdown("### Prediction Results")
+                        fig_overlay = plot_prediction_overlay(data, prediction_map, samples, colormap, contrast)
+                        st.plotly_chart(fig_overlay, use_container_width=True)
+                        
+                        # Display prediction statistics
+                        st.markdown("### Prediction Statistics")
+                        stats = {
+                            "Average Reservoir Probability": f"{np.mean(prediction_map):.2%}",
+                            "Max Reservoir Probability": f"{np.max(prediction_map):.2%}",
+                            "Area Above 50% Probability": f"{np.mean(prediction_map > 0.5):.2%}"
+                        }
+                        for key, value in stats.items():
+                            st.text(f"{key}: {value}")
+                
                 # Add trace extraction functionality
                 st.markdown("### Trace Analysis")
                 trace_number = st.number_input(
@@ -131,7 +209,7 @@ def main():
                     trace_fig = go.Figure()
                     trace_fig.add_trace(go.Scatter(
                         y=samples,
-                        x=data[trace_number],
+                        x=data[int(trace_number)],
                         mode='lines',
                         name=f'Trace {trace_number}'
                     ))

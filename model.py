@@ -1,61 +1,53 @@
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 
-class SeismicClassifier:
-    def __init__(self):
-        self.model = None
-        
-    def build_model(self, n_estimators=100, max_depth=None, min_samples_split=2,
-                   min_samples_leaf=1, max_features='auto', criterion='gini',
-                   class_weight=None):
-        """Build RandomForestClassifier with tunable hyperparameters"""
-        model = RandomForestClassifier(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-            max_features=max_features,
-            criterion=criterion,
-            class_weight=class_weight,
-            random_state=42,
-            n_jobs=-1
-        )
-        return model
-    
-    def train(self, X, y, **kwargs):
-        if self.model is None:
-            self.model = self.build_model(**kwargs)
-        
-        # Reshape the input data if needed
-        X = X.reshape(X.shape[0], -1)
-        
-        # Train the model and keep track of training scores
-        self.model.fit(X, y)
-        
-        # Return a dictionary similar to Keras history
-        train_score = self.model.score(X, y)
-        history = {
-            'accuracy': [train_score],
-            'val_accuracy': [train_score],  # Using same score for demo
-            'loss': [1 - train_score],
-            'val_loss': [1 - train_score]
-        }
-        
-        return history
-    
-    def predict(self, X):
-        if self.model is None:
-            raise ValueError("Model hasn't been trained yet!")
-        
-        # Reshape the input data if needed
-        X = X.reshape(X.shape[0], -1)
-        
-        # Get probabilities for each class
-        probabilities = self.model.predict_proba(X)
-        return probabilities
+def create_classifier(n_estimators=100):
+    """Create a Random Forest classifier for seismic reservoir identification"""
+    model = RandomForestClassifier(
+        n_estimators=n_estimators,
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        random_state=42,
+        n_jobs=-1
+    )
+    return model
 
-    def get_feature_importance(self):
-        """Get feature importance scores from the model"""
-        if self.model is None:
-            raise ValueError("Model hasn't been trained yet!")
-        return self.model.feature_importances_
+def prepare_data_for_prediction(seismic_data, window_size=64):
+    """Prepare seismic data for prediction by creating sliding windows"""
+    n_traces, n_samples = seismic_data.shape
+    windows = []
+    positions = []
+    
+    for i in range(0, n_traces - window_size + 1, window_size // 2):
+        for j in range(0, n_samples - window_size + 1, window_size // 2):
+            window = seismic_data[i:i + window_size, j:j + window_size]
+            if window.shape == (window_size, window_size):
+                # Flatten the window for sklearn
+                windows.append(window.flatten())
+                positions.append((i, j))
+    
+    return np.array(windows), positions
+
+def predict_reservoirs(model, windows):
+    """Make predictions on the prepared windows"""
+    # Get probability predictions
+    predictions = model.predict_proba(windows)
+    return predictions
+
+def create_prediction_map(predictions, positions, original_shape, window_size=64):
+    """Create a prediction map from the model outputs"""
+    prediction_map = np.zeros(original_shape)
+    count_map = np.zeros(original_shape)
+    
+    for pred, (i, j) in zip(predictions, positions):
+        # Use the reservoir probability (second class)
+        reservoir_prob = pred[1]  # Assuming binary classification
+        prediction_map[i:i + window_size, j:j + window_size] += reservoir_prob
+        count_map[i:i + window_size, j:j + window_size] += 1
+    
+    # Average overlapping predictions
+    count_map[count_map == 0] = 1  # Avoid division by zero
+    prediction_map = prediction_map / count_map
+    
+    return prediction_map
