@@ -42,7 +42,7 @@ def load_segy_data(uploaded_file):
         if os.path.exists('temp.sgy'):
             os.remove('temp.sgy')
 
-def plot_seismic_section(data, samples, colormap='seismic', contrast=1.0):
+def plot_seismic_section(data, samples, colormap='RdBu', contrast=1.0):
     """Create an interactive plot of the seismic section"""
     # Scale the data
     scaled_data = data * contrast
@@ -100,7 +100,7 @@ def main():
                 # Visualization controls
                 colormap = st.sidebar.selectbox(
                     "Color Map",
-                    ['seismic', 'RdBu', 'RdGy', 'Spectral', 'RdYlBu'],
+                    ['RdBu', 'RdGy', 'Spectral', 'RdYlBu', 'Viridis'],
                     index=0
                 )
                 
