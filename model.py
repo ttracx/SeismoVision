@@ -1,68 +1,88 @@
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
 import joblib
+import streamlit as st
 
 def create_classifier():
-    """Create a new classifier model"""
-    return RandomForestClassifier(n_estimators=100, random_state=42)
+    """Create a random forest classifier for reservoir identification"""
+    return RandomForestClassifier(
+        n_estimators=100,
+        max_depth=10,
+        random_state=42
+    )
 
-def generate_sample_training_data(n_samples=1000):
-    """Generate synthetic training data for testing"""
-    # Generate synthetic seismic traces
-    X = np.random.randn(n_samples, 100)  # 100 features per sample
-    # Generate synthetic labels (0: no reservoir, 1: reservoir)
-    y = np.random.randint(0, 2, n_samples)
-    return X, y
-
-def train_model(model, X, y):
-    """Train the model with given data"""
-    try:
-        model.fit(X, y)
-        return True
-    except Exception as e:
-        print(f"Error during training: {str(e)}")
-        return False
-
-def save_model(model, filename='model.joblib'):
-    """Save the trained model"""
-    try:
-        joblib.dump(model, filename)
-        return True
-    except Exception as e:
-        print(f"Error saving model: {str(e)}")
-        return False
-
-def prepare_data_for_prediction(seismic_data, window_size=100):
-    """Prepare seismic data for prediction"""
-    n_traces, n_samples = seismic_data.shape
-    windows = []
-    positions = []
+def extract_features(seismic_data, window_size=5):
+    """Extract features from seismic data using a sliding window"""
+    n_samples, n_traces = seismic_data.shape
+    features = []
     
-    # Slide window over each trace
-    for i in range(n_traces):
-        for j in range(0, n_samples - window_size + 1, window_size):
-            window = seismic_data[i, j:j+window_size]
-            windows.append(window)
-            positions.append((i, j))
+    for i in range(window_size, n_samples - window_size):
+        window = seismic_data[i-window_size:i+window_size+1, :]
+        features.append([
+            np.mean(window),
+            np.std(window),
+            np.max(window),
+            np.min(window),
+            np.percentile(window, 25),
+            np.percentile(window, 75),
+            np.sum(np.abs(np.diff(window, axis=0))),  # Total variation
+            np.mean(np.abs(np.fft.fft(window, axis=0)))  # Average frequency content
+        ])
     
-    return np.array(windows), positions
+    return np.array(features)
 
-def predict_reservoirs(model, windows):
+def prepare_data_for_prediction(seismic_data):
+    """Prepare seismic data for model prediction"""
+    features = extract_features(seismic_data)
+    scaler = StandardScaler()
+    scaled_features = scaler.fit_transform(features)
+    return scaled_features
+
+def predict_reservoirs(model, seismic_data):
     """Make predictions using the trained model"""
-    try:
-        predictions = model.predict_proba(windows)
-        return predictions[:, 1]  # Return probability of reservoir class
-    except Exception as e:
-        print(f"Error during prediction: {str(e)}")
-        return None
+    features = prepare_data_for_prediction(seismic_data)
+    predictions = model.predict(features)
+    probabilities = model.predict_proba(features)
+    return predictions, probabilities
 
-def create_prediction_map(predictions, positions, data_shape):
-    """Create a 2D map of predictions"""
+def create_prediction_map(predictions, original_shape, window_size=5):
+    """Create a prediction map matching the original seismic data shape"""
+    prediction_map = np.zeros(original_shape)
+    prediction_map[window_size:-window_size, :] = predictions.reshape(-1, original_shape[1])
+    return prediction_map
+
+def generate_sample_training_data(seismic_data, n_samples=1000):
+    """Generate synthetic training data for demonstration"""
+    features = extract_features(seismic_data)
+    
+    # Randomly select samples
+    indices = np.random.choice(len(features), n_samples, replace=False)
+    X_train = features[indices]
+    
+    # Generate synthetic labels (0: non-reservoir, 1: reservoir)
+    # Using simple amplitude-based thresholding for demonstration
+    y_train = (np.mean(X_train, axis=1) > np.mean(X_train)) * 1
+    
+    return X_train, y_train
+
+def train_model(X_train, y_train):
+    """Train the reservoir identification model"""
+    model = create_classifier()
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_train)
+    model.fit(X_scaled, y_train)
+    return model, scaler
+
+def save_model(model, filepath='model.joblib'):
+    """Save the trained model to disk"""
+    joblib.dump(model, filepath)
+    return filepath
+
+def load_model(filepath='model.joblib'):
+    """Load a trained model from disk"""
     try:
-        prediction_map = np.zeros(data_shape)
-        for pred, (i, j) in zip(predictions, positions):
-            prediction_map[i, j] = pred
-        return prediction_map
-    except Exception as e:
-        print(f"Error creating prediction map: {str(e)}")
+        return joblib.load(filepath)
+    except:
         return None
