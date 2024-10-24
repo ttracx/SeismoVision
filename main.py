@@ -5,7 +5,10 @@ import segyio
 import plotly.graph_objects as go
 import io
 import os
-from model import create_classifier, prepare_data_for_prediction, predict_reservoirs, create_prediction_map
+from model import (
+    create_classifier, prepare_data_for_prediction, predict_reservoirs, 
+    create_prediction_map, generate_sample_training_data, train_model, save_model
+)
 import joblib
 
 st.set_page_config(
@@ -18,13 +21,30 @@ st.title("Seismic Data Interpretation Application")
 
 @st.cache_resource
 def load_classifier():
-    """Load or create the Random Forest classifier"""
-    if os.path.exists('model.joblib'):
-        model = joblib.load('model.joblib')
-    else:
-        model = create_classifier()
-        # Note: In production, you would train the model here or load pre-trained weights
-    return model
+    """Load or create and train the Random Forest classifier"""
+    try:
+        if os.path.exists('model.joblib'):
+            st.info("Loading pre-trained model...")
+            model = joblib.load('model.joblib')
+        else:
+            st.info("Training new model with synthetic data...")
+            model = create_classifier()
+            # Generate and train with synthetic data
+            X, y = generate_sample_training_data()
+            if train_model(model, X, y):
+                st.success("Model trained successfully!")
+                # Save the trained model
+                if save_model(model):
+                    st.success("Model saved successfully!")
+                else:
+                    st.warning("Could not save the model, but it can still be used for predictions.")
+            else:
+                st.error("Error occurred during model training.")
+                return None
+        return model
+    except Exception as e:
+        st.error(f"Error in model initialization: {str(e)}")
+        return None
 
 def load_segy_data(uploaded_file):
     """Load SEG-Y data and return the data array"""
@@ -79,6 +99,9 @@ def plot_seismic_section(data, samples, colormap='RdBu', contrast=1.0):
 
 def plot_prediction_overlay(data, prediction_map, samples, colormap='RdBu', contrast=1.0):
     """Create a plot with prediction overlay"""
+    if prediction_map is None:
+        return None
+        
     # Create figure with secondary axis
     fig = go.Figure()
     
@@ -112,6 +135,9 @@ def plot_prediction_overlay(data, prediction_map, samples, colormap='RdBu', cont
 def main():
     # Load classifier
     model = load_classifier()
+    if model is None:
+        st.error("Failed to initialize the model. Please refresh the page to try again.")
+        return
     
     # Sidebar controls
     st.sidebar.header("Visualization Controls")
@@ -174,26 +200,35 @@ def main():
                         # Make predictions
                         predictions = predict_reservoirs(model, windows)
                         
-                        # Create prediction map
-                        prediction_map = create_prediction_map(predictions, positions, data.shape)
-                        
-                        # Store predictions in session state
-                        st.session_state['prediction_map'] = prediction_map
-                        
-                        # Plot results with overlay
-                        st.markdown("### Prediction Results")
-                        fig_overlay = plot_prediction_overlay(data, prediction_map, samples, colormap, contrast)
-                        st.plotly_chart(fig_overlay, use_container_width=True)
-                        
-                        # Display prediction statistics
-                        st.markdown("### Prediction Statistics")
-                        stats = {
-                            "Average Reservoir Probability": f"{np.mean(prediction_map):.2%}",
-                            "Max Reservoir Probability": f"{np.max(prediction_map):.2%}",
-                            "Area Above 50% Probability": f"{np.mean(prediction_map > 0.5):.2%}"
-                        }
-                        for key, value in stats.items():
-                            st.text(f"{key}: {value}")
+                        if predictions is not None:
+                            # Create prediction map
+                            prediction_map = create_prediction_map(predictions, positions, data.shape)
+                            
+                            if prediction_map is not None:
+                                # Store predictions in session state
+                                st.session_state['prediction_map'] = prediction_map
+                                
+                                # Plot results with overlay
+                                st.markdown("### Prediction Results")
+                                fig_overlay = plot_prediction_overlay(data, prediction_map, samples, colormap, contrast)
+                                if fig_overlay is not None:
+                                    st.plotly_chart(fig_overlay, use_container_width=True)
+                                    
+                                    # Display prediction statistics
+                                    st.markdown("### Prediction Statistics")
+                                    stats = {
+                                        "Average Reservoir Probability": f"{np.mean(prediction_map):.2%}",
+                                        "Max Reservoir Probability": f"{np.max(prediction_map):.2%}",
+                                        "Area Above 50% Probability": f"{np.mean(prediction_map > 0.5):.2%}"
+                                    }
+                                    for key, value in stats.items():
+                                        st.text(f"{key}: {value}")
+                                else:
+                                    st.error("Error creating prediction visualization.")
+                            else:
+                                st.error("Error creating prediction map.")
+                        else:
+                            st.error("Error making predictions. Please ensure the model is properly trained.")
                 
                 # Add trace extraction functionality
                 st.markdown("### Trace Analysis")
