@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import segyio
+import plotly.graph_objects as go
 import io
 import os
 
@@ -12,10 +13,9 @@ st.set_page_config(
 )
 
 st.title("Seismic Data Interpretation Application")
-st.subheader("Data Loading Module")
 
-def load_segy_file(uploaded_file):
-    """Load and validate SEG-Y file"""
+def load_segy_data(uploaded_file):
+    """Load SEG-Y data and return the data array"""
     try:
         # Save the uploaded file temporarily
         with open('temp.sgy', 'wb') as f:
@@ -23,56 +23,127 @@ def load_segy_file(uploaded_file):
         
         # Open the SEG-Y file
         with segyio.open('temp.sgy', 'r', strict=False) as segy:
-            # Get basic information
+            # Get dimensions
             n_traces = segy.tracecount
-            sample_rate = segy.samples[1] - segy.samples[0]
             n_samples = len(segy.samples)
             
-            # Read the first trace to get data type and range
-            first_trace = segy.trace[0]
+            # Read all traces into a numpy array
+            data = np.zeros((n_traces, n_samples))
+            for i in range(n_traces):
+                data[i] = segy.trace[i]
             
-            info = {
-                "Number of Traces": n_traces,
-                "Sample Rate (ms)": sample_rate,
-                "Samples per Trace": n_samples,
-                "Data Range": f"{first_trace.min():.2f} to {first_trace.max():.2f}",
-                "Data Type": first_trace.dtype
-            }
-            
-            return info, True
+            return data, segy.samples
             
     except Exception as e:
         st.error(f"Error loading SEG-Y file: {str(e)}")
-        return None, False
+        return None, None
     finally:
         # Clean up temporary file
         if os.path.exists('temp.sgy'):
             os.remove('temp.sgy')
 
+def plot_seismic_section(data, samples, colormap='seismic', contrast=1.0):
+    """Create an interactive plot of the seismic section"""
+    # Scale the data
+    scaled_data = data * contrast
+    
+    # Create the heatmap
+    fig = go.Figure(data=go.Heatmap(
+        z=scaled_data,
+        y=samples,
+        colorscale=colormap,
+        zmid=0,  # Center the colorscale at zero
+    ))
+    
+    # Update layout
+    fig.update_layout(
+        title="Seismic Section",
+        yaxis_title="Time/Depth",
+        xaxis_title="Trace Number",
+        height=700,
+    )
+    
+    return fig
+
 def main():
+    # Sidebar controls
+    st.sidebar.header("Visualization Controls")
+    
     # File upload section
     st.markdown("### Upload Seismic Data")
     uploaded_file = st.file_uploader("Choose a SEG-Y file", type=['sgy', 'segy'])
     
     if uploaded_file is not None:
         with st.spinner('Loading seismic data...'):
-            info, success = load_segy_file(uploaded_file)
+            # Load the data
+            data, samples = load_segy_data(uploaded_file)
             
-            if success:
+            if data is not None:
                 st.success("File loaded successfully!")
                 
-                # Display file information
+                # Store in session state
+                st.session_state['seismic_data'] = data
+                st.session_state['samples'] = samples
+                st.session_state['filename'] = uploaded_file.name
+                
+                # Display data information
                 st.markdown("### Seismic Data Information")
+                info = {
+                    "Number of Traces": data.shape[0],
+                    "Samples per Trace": data.shape[1],
+                    "Data Range": f"{data.min():.2f} to {data.max():.2f}",
+                    "Data Type": data.dtype
+                }
                 for key, value in info.items():
                     st.text(f"{key}: {value}")
                 
-                # Store the file information in session state
-                st.session_state['seismic_info'] = info
-                st.session_state['filename'] = uploaded_file.name
+                # Visualization controls
+                colormap = st.sidebar.selectbox(
+                    "Color Map",
+                    ['seismic', 'RdBu', 'RdGy', 'Spectral', 'RdYlBu'],
+                    index=0
+                )
+                
+                contrast = st.sidebar.slider(
+                    "Contrast",
+                    min_value=0.1,
+                    max_value=5.0,
+                    value=1.0,
+                    step=0.1
+                )
+                
+                # Plot the seismic section
+                st.markdown("### Seismic Section Visualization")
+                fig = plot_seismic_section(data, samples, colormap, contrast)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Add trace extraction functionality
+                st.markdown("### Trace Analysis")
+                trace_number = st.number_input(
+                    "Select Trace Number",
+                    min_value=0,
+                    max_value=data.shape[0]-1,
+                    value=0
+                )
+                
+                if st.button("Extract Trace"):
+                    # Plot single trace
+                    trace_fig = go.Figure()
+                    trace_fig.add_trace(go.Scatter(
+                        y=samples,
+                        x=data[trace_number],
+                        mode='lines',
+                        name=f'Trace {trace_number}'
+                    ))
+                    trace_fig.update_layout(
+                        title=f"Trace {trace_number}",
+                        xaxis_title="Amplitude",
+                        yaxis_title="Time/Depth",
+                        height=400
+                    )
+                    st.plotly_chart(trace_fig, use_container_width=True)
             else:
                 st.error("Failed to load the file. Please check if it's a valid SEG-Y file.")
-    
-    # Display instructions if no file is uploaded
     else:
         st.info("Please upload a SEG-Y format seismic data file to begin.")
         st.markdown("""
