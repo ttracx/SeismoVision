@@ -31,7 +31,7 @@ pip install streamlit numpy pandas segyio plotly scikit-learn
 streamlit run main.py
 ```
 2. Access the application through your web browser at `http://localhost:5000`
-3. Upload your SEG-Y format seismic data
+3. Upload your SEG-Y format seismic data (or use example from `data_example/1x1.sgy`)
 4. Use the sidebar controls to adjust visualization parameters
 5. Run reservoir predictions and analyze results
 
