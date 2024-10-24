@@ -45,14 +45,43 @@ def preprocess_seismic_data(data, params=None):
     processed_data = data.copy()
     
     if params['apply_bandpass']:
-        nyquist = params['sampling_rate'] / 2
-        low = params['lowcut'] / nyquist
-        high = params['highcut'] / nyquist
-        b, a = signal.butter(4, [low, high], btype='band')
-        processed_data = signal.filtfilt(b, a, processed_data, axis=1)
+        # Check data length for minimum requirements
+        min_samples = 50  # Minimum samples required for optimal filtering
+        min_filter_samples = 10  # Absolute minimum samples required for any filtering
+        
+        if processed_data.shape[1] < min_filter_samples:
+            st.warning("Data length too small for bandpass filtering. Skipping filter application.")
+            return processed_data
+        
+        # Determine filter order based on data length
+        filter_order = 2 if processed_data.shape[1] < min_samples else 4
+        if processed_data.shape[1] < min_samples:
+            st.warning(f"Data length ({processed_data.shape[1]} samples) is less than optimal ({min_samples} samples). Using reduced filter order.")
+        
+        try:
+            nyquist = params['sampling_rate'] / 2
+            low = params['lowcut'] / nyquist
+            high = params['highcut'] / nyquist
+            
+            # Ensure frequencies are within valid range
+            low = max(0.001, min(low, 0.99))
+            high = max(low + 0.001, min(high, 0.99))
+            
+            b, a = signal.butter(filter_order, [low, high], btype='band')
+            
+            # Calculate padlen based on data length
+            padlen = min(3 * filter_order, processed_data.shape[1] // 4)
+            
+            # Apply filter with adjusted parameters
+            processed_data = signal.filtfilt(b, a, processed_data, axis=1, padlen=padlen)
+            
+        except Exception as e:
+            st.error(f"Error during bandpass filtering: {str(e)}")
+            st.warning("Continuing with unfiltered data.")
+            return data
     
     if params['apply_agc']:
-        window_length = params['agc_window']
+        window_length = min(params['agc_window'], processed_data.shape[1] // 2)
         for i in range(processed_data.shape[0]):
             trace = processed_data[i]
             window = np.ones(window_length) / window_length
