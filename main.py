@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from model import SeismicCNN
+from model import SeismicClassifier
 from preprocessing import preprocess_data
 from utils import plot_seismic_data, plot_training_history
 import io
@@ -19,7 +19,7 @@ def main():
 
     # Initialize session state
     if 'model' not in st.session_state:
-        st.session_state.model = SeismicCNN()
+        st.session_state.model = SeismicClassifier()
     if 'training_history' not in st.session_state:
         st.session_state.training_history = None
 
@@ -78,11 +78,7 @@ def train_model():
     col1, col2 = st.columns(2)
     
     with col1:
-        epochs = st.slider("Number of epochs", 5, 50, 10)
-        batch_size = st.selectbox("Batch size", [16, 32, 64, 128])
-        
-    with col2:
-        validation_split = st.slider("Validation split", 0.1, 0.3, 0.2)
+        n_estimators = st.slider("Number of trees", 50, 500, 100)
         
     if st.button("Start Training"):
         with st.spinner("Training in progress..."):
@@ -95,9 +91,7 @@ def train_model():
             # Train model
             history = st.session_state.model.train(
                 X_processed, y,
-                epochs=epochs,
-                batch_size=batch_size,
-                validation_split=validation_split
+                n_estimators=n_estimators
             )
             
             st.session_state.training_history = history
