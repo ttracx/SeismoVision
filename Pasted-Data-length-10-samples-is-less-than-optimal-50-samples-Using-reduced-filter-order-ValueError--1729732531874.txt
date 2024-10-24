@@ -1,0 +1,29 @@
+Data length (10 samples) is less than optimal (50 samples). Using reduced filter order.
+
+ValueError: Invalid value of type 'builtins.str' received for the 'colorscale' property of heatmap Received value: 'Seismic' The 'colorscale' property is a colorscale and may be specified as: - A list of colors that will be spaced evenly to create the colorscale. Many predefined colorscale lists are included in the sequential, diverging, and cyclical modules in the plotly.colors package. - A list of 2-element lists where the first element is the normalized color level value (starting at 0 and ending at 1), and the second item is a valid color string. (e.g. [[0, 'green'], [0.5, 'red'], [1.0, 'rgb(0, 0, 255)']]) - One of the following named colorscales: ['aggrnyl', 'agsunset', 'algae', 'amp', 'armyrose', 'balance', 'blackbody', 'bluered', 'blues', 'blugrn', 'bluyl', 'brbg', 'brwnyl', 'bugn', 'bupu', 'burg', 'burgyl', 'cividis', 'curl', 'darkmint', 'deep', 'delta', 'dense', 'earth', 'edge', 'electric', 'emrld', 'fall', 'geyser', 'gnbu', 'gray', 'greens', 'greys', 'haline', 'hot', 'hsv', 'ice', 'icefire', 'inferno', 'jet', 'magenta', 'magma', 'matter', 'mint', 'mrybm', 'mygbm', 'oranges', 'orrd', 'oryel', 'oxy', 'peach', 'phase', 'picnic', 'pinkyl', 'piyg', 'plasma', 'plotly3', 'portland', 'prgn', 'pubu', 'pubugn', 'puor', 'purd', 'purp', 'purples', 'purpor', 'rainbow', 'rdbu', 'rdgy', 'rdpu', 'rdylbu', 'rdylgn', 'redor', 'reds', 'solar', 'spectral', 'speed', 'sunset', 'sunsetdark', 'teal', 'tealgrn', 'tealrose', 'tempo', 'temps', 'thermal', 'tropic', 'turbid', 'turbo', 'twilight', 'viridis', 'ylgn', 'ylgnbu', 'ylorbr', 'ylorrd']. Appending '_r' to a named colorscale reverses it.
+Traceback:
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 88, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 579, in code_to_exec
+    exec(code, module.__dict__)
+File "/home/runner/workspace/main.py", line 76, in <module>
+    fig = plot_seismic_section(processed_data, seismic_data['time'])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/preprocessing.py", line 98, in plot_seismic_section
+    fig.add_trace(go.Heatmap(
+                  ^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/graph_objs/_heatmap.py", line 3010, in __init__
+    self["colorscale"] = _v
+    ~~~~^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/basedatatypes.py", line 4868, in __setitem__
+    self._set_prop(prop, value)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/basedatatypes.py", line 5212, in _set_prop
+    raise err
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/basedatatypes.py", line 5207, in _set_prop
+    val = validator.validate_coerce(val)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/_plotly_utils/basevalidators.py", line 1679, in validate_coerce
+    self.raise_invalid_val(v)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/_plotly_utils/basevalidators.py", line 296, in raise_invalid_val
+    raise ValueError(

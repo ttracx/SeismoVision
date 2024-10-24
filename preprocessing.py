@@ -98,7 +98,7 @@ def plot_seismic_section(data, time, title="Seismic Section"):
     fig.add_trace(go.Heatmap(
         z=data,
         y=time,
-        colorscale='Seismic',
+        colorscale='RdBu',  # Changed from 'Seismic' to 'RdBu'
         zmid=0,
         showscale=True
     ))
@@ -149,7 +149,7 @@ def create_cross_section(data, direction='inline', position=None):
     
     fig = go.Figure(data=go.Heatmap(
         z=section,
-        colorscale='Seismic',
+        colorscale='RdBu',  # Changed from 'Seismic' to 'RdBu'
         zmid=0
     ))
     
